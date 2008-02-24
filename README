@@ -1,0 +1,9 @@
+PyElection is a python program for following the 2008 US presidential primaries.
+
+You can run it by executing the pyelection.py file.
+
+It requires several external python libraries:
+    * PyGTK
+    * BeautifulSoup
+    * gobject
+You also need to have GTK itself installed.
