@@ -33,10 +33,12 @@ class pyelection(object):
         self.initiate_widgets()
     
     def initiate_widgets(self):
+        # get the 3 tree views
         self.stateView = self.wTree.get_widget('stateView')
         self.resultView = self.wTree.get_widget('resultView')
         self.overallView = self.wTree.get_widget('overallView')
         
+        # set up the list view and columns for the state tree view
         self.stateList = gtk.ListStore(gobject.TYPE_PYOBJECT, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_STRING)
         self.state_columns = []
         self.state_columns.append(('State', 1))
@@ -50,6 +52,7 @@ class pyelection(object):
             self.stateView.append_column(col) 
         self.stateView.set_model(self.stateList)
         
+        # set up the list view and columns for the result tree view
         self.resultList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_INT)
         self.result_columns = []
         self.result_columns.append(('Name', 0))
@@ -62,6 +65,7 @@ class pyelection(object):
             self.resultView.append_column(col)
         self.resultView.set_model(self.resultList)
         
+        # set up the list view and columns for the overall tree view
         self.overallList = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_INT)
         self.overall_columns = []
         self.overall_columns.append(('Name', 0))
@@ -74,10 +78,12 @@ class pyelection(object):
             self.overallView.append_column(col)
         self.overallView.set_model(self.overallList)
         
+        # get the progress bar
         self.progress = self.wTree.get_widget('updateBar')
     
     def party_changed(self, widget):
         self.clear_states()
+        # get the selected party
         active = widget.get_model().get_value(widget.get_active_iter(), 0)
         if active == 'Democrats':
             party = 'D'
@@ -86,9 +92,8 @@ class pyelection(object):
         self.total = len(STATES)
         self.count = float(0)
         
-        percent = self.count/self.total
-        text = 'Updated %d of %d states: %.0f%% done' % (self.count, self.total, percent*100)
-        self.refresh_progress_bar(percent, text)
+        text = 'Updated %d of %d states: %.0f%% done'
+        self.refresh_progress_bar(text)
         for state in STATES:
             self.add_state(state[0], state[1], party, count=True)
     
@@ -98,9 +103,9 @@ class pyelection(object):
     def refresh(self, widget):
         self.total = len(list(self.iter_states()))
         self.count = float(0)
-        percent = self.count/self.total
-        text = 'Updated %d of %d states: %.0f%% done' % (self.count, self.total, percent*100)
-        self.refresh_progress_bar(percent, text)
+        
+        text = 'Updated %d of %d states: %.0f%% done'
+        self.refresh_progress_bar(text)
         for itera, state in self.iter_states():
             self.update_single(itera, count=True)
     
@@ -127,11 +132,6 @@ class pyelection(object):
         
         if count:
             self.count += 1
-            percent = self.count/self.total
-            text = 'Updated %d of %d states: %.0f%% done' % (self.count, self.total, percent*100)
-            gtk.gdk.threads_enter()
-            self.refresh_progress_bar(percent, text)
-            gtk.gdk.threads_leave()
         self.refresh_overall()
     
     @threaded
@@ -154,19 +154,21 @@ class pyelection(object):
         gtk.gdk.threads_leave()
         if count:
             self.count += 1
-            percent = self.count/self.total
-            text = 'Updated %d of %d states: %.0f%% done' % (self.count, self.total, percent*100)
-            gtk.gdk.threads_enter()
-            self.refresh_progress_bar(percent, text)
-            gtk.gdk.threads_leave()
         self.refresh_overall()
     
-    def refresh_progress_bar(self, percent, text):
-        self.progress.set_fraction(percent)
-        if percent == 1 or percent == 1.0:
-            self.progress.set_text('Done')
-        else:
-            self.progress.set_text(text)
+    @threaded
+    def refresh_progress_bar(self, template):
+        percent = self.count/self.total
+        while percent != 1 or percent != 1.0:
+            percent = self.count/self.total
+            text = template % (self.count, self.total, percent*100)
+            gtk.gdk.threads_enter()
+            self.progress.set_fraction(percent)
+            if percent == 1 or percent == 1.0:
+                self.progress.set_text('Done')
+            else:
+                self.progress.set_text(text)
+            gtk.gdk.threads_leave()
     
     @threaded
     def refresh_results(self):
